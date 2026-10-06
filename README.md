@@ -1,2 +1,0 @@
-# TuckHub
-Food ordering website 
