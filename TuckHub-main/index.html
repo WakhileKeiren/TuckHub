@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#000080" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="TuckHub" />
+<meta name="description" content="Order food from TuckHub Mbabane and The New Flame Kitchen. Snacks, drinks, chicken dust, burgers and more." />
+<title>TuckHub & New Flame — Order Food</title>
+<link rel="icon" href="images/logo-tuckhub.jpg" />
+<link rel="apple-touch-icon" href="images/logo-tuckhub.jpg" />
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<!-- Tailwind (CDN) -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:#F5F7FA;color:#0B2B3D;line-height:1.5;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif;letter-spacing:-.02em}
+  img{max-width:100%;display:block}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    padding:.75rem 1.25rem;border-radius:.75rem;font-weight:600;
+    font-size:.9rem;cursor:pointer;border:none;transition:all .2s;
+    font-family:'Inter',sans-serif;
+  }
+  .btn-primary{background:#000080;color:#fff}
+  .btn-primary:hover{background:#000066;transform:translateY(-1px)}
+  .btn-fire{background:#C7321B;color:#fff}
+  .btn-fire:hover{background:#A02615;transform:translateY(-1px)}
+  .btn-outline{background:transparent;color:#000080;border:2px solid #000080}
+  .btn-outline:hover{background:#000080;color:#fff}
+  .btn-outline-fire{background:transparent;color:#C7321B;border:2px solid #C7321B}
+  .btn-outline-fire:hover{background:#C7321B;color:#fff}
+  .btn-sm{padding:.5rem .9rem;font-size:.8rem;border-radius:.6rem}
+
+  .chip{
+    display:inline-flex;align-items:center;gap:.35rem;
+    font-size:.7rem;font-weight:600;padding:.3rem .65rem;border-radius:999px;
+  }
+  .chip-hot{background:#FEE2E2;color:#991B1B}
+  .chip-ready{background:#D1FAE5;color:#065F46}
+  .chip-paid{background:#DBEAFE;color:#1E40AF}
+  .chip-unpaid{background:#FEF3C7;color:#92400E}
+  .chip-pending{background:#FEF3C7;color:#92400E}
+  .chip-preparing{background:#DBEAFE;color:#1E40AF}
+  .chip-ready-status{background:#E0E7FF;color:#3730A3}
+  .chip-delivered{background:#D1FAE5;color:#065F46}
+
+  .menu-card{
+    background:#fff;border-radius:1rem;overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);transition:all .25s;
+    display:flex;flex-direction:column;border:1px solid #E5EAF0;
+  }
+  .menu-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.1)}
+  .menu-card .item-img{
+    width:100%;aspect-ratio:1;object-fit:cover;background:#EEF2F7;
+  }
+  .menu-card .fallback{
+    width:100%;aspect-ratio:1;
+    background:linear-gradient(135deg,#EEF2F7,#DCE5EE);
+    display:flex;align-items:center;justify-content:center;font-size:3.5rem;
+  }
+
+  .tab-bar{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;
+    border-top:1px solid #E5EAF0;display:flex;justify-content:space-around;
+    padding:.5rem 0 calc(.5rem + env(safe-area-inset-bottom));
+    z-index:40;box-shadow:0 -4px 12px rgba(0,0,0,.04);
+  }
+  .tab-btn{
+    display:flex;flex-direction:column;align-items:center;gap:.2rem;
+    padding:.4rem .8rem;border:none;background:none;cursor:pointer;
+    font-size:.65rem;font-weight:600;color:#6B7A8F;
+    font-family:'Inter',sans-serif;transition:color .2s;
+    position:relative;flex:1;
+  }
+  .tab-btn.active{color:#000080}
+  .tab-btn i{font-size:1.1rem}
+  .cart-badge{
+    position:absolute;top:.2rem;right:calc(50% - 1.5rem);
+    background:#EF4444;color:#fff;font-size:.6rem;font-weight:700;
+    min-width:1.1rem;height:1.1rem;border-radius:999px;
+    display:flex;align-items:center;justify-content:center;padding:0 .25rem;
+  }
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;
+    display:none;align-items:flex-end;justify-content:center;
+    backdrop-filter:blur(4px);
+  }
+  .modal-overlay.open{display:flex;animation:fadeIn .2s}
+  .modal-sheet{
+    background:#fff;width:100%;max-width:640px;
+    border-radius:1.5rem 1.5rem 0 0;max-height:90vh;overflow-y:auto;
+    padding:1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+    animation:slideUp .3s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  input,textarea,select{
+    font-family:'Inter',sans-serif;font-size:.9rem;width:100%;
+    padding:.75rem 1rem;border:2px solid #E5EAF0;border-radius:.75rem;
+    outline:none;transition:border-color .2s;color:#0B2B3D;background:#fff;
+  }
+  input:focus,textarea:focus,select:focus{border-color:#000080}
+
+  .fade-in{animation:fadeIn .4s ease}
+  .stat-card{background:#fff;border-radius:1rem;padding:1rem;border:1px solid #E5EAF0}
+  .stat-num{font-size:1.75rem;font-weight:700;color:#000080;font-family:'Fraunces',serif}
+  .stat-label{font-size:.7rem;color:#6B7A8F;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+
+  .order-row{
+    background:#fff;border-radius:.9rem;padding:1rem;border:1px solid #E5EAF0;
+    display:flex;flex-direction:column;gap:.5rem;
+  }
+  .order-row.hot{border-left:4px solid #FF6B1A}
+  .order-row.ready{border-left:4px solid #10B981}
+
+  .admin-item{
+    background:#fff;border-radius:.75rem;padding:.75rem 1rem;
+    border:1px solid #E5EAF0;display:flex;justify-content:space-between;
+    align-items:center;gap:.75rem;
+  }
+
+  .vendor-card{
+    background:#fff;border-radius:1.5rem;overflow:hidden;
+    box-shadow:0 4px 20px rgba(0,0,0,.08);cursor:pointer;
+    transition:transform .3s,box-shadow .3s;border:2px solid transparent;
+  }
+  .vendor-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.15)}
+  .vendor-card .v-hero{
+    height:160px;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:3rem;
+  }
+  .vendor-card .v-hero img{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;
+  }
+  .vendor-card .v-hero .overlay{
+    position:absolute;inset:0;
+  }
+  .vendor-tuckhub .v-hero .overlay{background:linear-gradient(135deg,rgba(0,0,128,.75),rgba(135,206,235,.55))}
+  .vendor-newflame .v-hero .overlay{background:linear-gradient(135deg,rgba(199,50,27,.8),rgba(255,107,26,.6))}
+  .vendor-card .v-hero .icon-wrap{
+    position:relative;z-index:2;
+    width:80px;height:80px;border-radius:50%;
+    background:rgba(255,255,255,.15);backdrop-filter:blur(8px);
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid rgba(255,255,255,.35);
+  }
+
+  .header-bar{
+    position:sticky;top:0;z-index:30;background:#fff;
+    border-bottom:1px solid #E5EAF0;padding:.75rem 1rem;
+    display:flex;align-items:center;gap:.75rem;
+  }
+
+  .section-title{
+    font-size:.75rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.08em;color:#6B7A8F;margin:1.25rem 0 .5rem;
+    display:flex;align-items:center;gap:.5rem;
+  }
+
+  .qty-btn{
+    width:1.75rem;height:1.75rem;border-radius:.5rem;border:none;
+    background:#000080;color:#fff;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-size:.9rem;
+  }
+  .qty-btn.ghost{background:#EEF2F7;color:#0B2B3D}
+
+  .toast{
+    position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%);
+    background:#111;color:#fff;padding:.75rem 1.25rem;border-radius:999px;
+    font-size:.85rem;font-weight:500;z-index:100;animation:fadeIn .2s;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:90vw;text-align:center;
+  }
+
+  @media (min-width:640px){
+    .modal-overlay{align-items:center}
+    .modal-sheet{border-radius:1.5rem;max-width:560px;margin:1rem}
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<div class="modal-overlay" id="modalCart"><div class="modal-sheet" id="modalCartContent"></div></div>
+<div class="modal-overlay" id="modalCheckout"><div class="modal-sheet" id="modalCheckoutContent"></div></div>
+<div class="modal-overlay" id="modalTrack"><div class="modal-sheet" id="modalTrackContent"></div></div>
+<div class="modal-overlay" id="modalAdmin"><div class="modal-sheet" id="modalAdminContent" style="max-width:720px"></div></div>
+<div class="modal-overlay" id="modalInfo"><div class="modal-sheet" id="modalInfoContent"></div></div>
+
+<script>
+/* =========================================================
+   1. FIREBASE CONFIG
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCVHPxj6hYn3JeEP96kJZiDUWrOMU8tuVY",
+  authDomain: "tuckhub-newflame.firebaseapp.com",
+  databaseURL: "https://tuckhub-newflame-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tuckhub-newflame",
+  storageBucket: "tuckhub-newflame.firebasestorage.app",
+  messagingSenderId: "1027789279341",
+  appId: "1:1027789279341:web:7b20cbd801136df12d6f64",
+  measurementId: "G-4PDPKGKG8G"
+};
+
+const ADMIN_PIN = "2468";
+const WHATSAPP_NUMBER = "26879582228";
+const MOMO_NUMBER = "76276790";
+const MOMO_NAME = "New Flame Investments";
+
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  console.log("✅ Firebase connected");
+} catch (e) {
+  console.warn("⚠️ Firebase failed, using localStorage only:", e);
+}
+
+/* =========================================================
+   2. SEED MENU DATA — paths match your GitHub structure
+   ========================================================= */
+const SEED_MENU = {
+  tuckhub: [
+    { id:"fries", name:"Fries", price:15, cat:"hot", emoji:"🍟", img:"tuckhub/fries.jpg" },
+    { id:"russian", name:"Russian", price:8, cat:"hot", emoji:"🌭", img:"tuckhub/russian.jpg" },
+    { id:"popcorn", name:"Popcorn", price:5, cat:"hot", emoji:"🍿", img:"tuckhub/popcorn.jpg" },
+    { id:"sweets", name:"Sweets", price:0.5, cat:"snacks", emoji:"🍬", img:"tuckhub/sweets.jpg" },
+    { id:"ayoba", name:"Ayoba", price:2.5, cat:"snacks", emoji:"🥟", img:"tuckhub/ayoba.jpg" },
+    { id:"sliders", name:"Sliders", price:2, cat:"snacks", emoji:"🍫", img:"tuckhub/sliders.jpg" },
+    { id:"lunchbar", name:"Lunch Bar", price:6, cat:"snacks", emoji:"🍫", img:"tuckhub/lunchbar.jpg" },
+    { id:"ps", name:"PS Chocolate Bar", price:6, cat:"snacks", emoji:"🍫", img:"tuckhub/ps-chocolate.jpg" },
+    { id:"scoopers", name:"Scoopers", price:1, cat:"snacks", emoji:"🍭", img:"tuckhub/scoopers.jpg" },
+    { id:"boshiwe", name:"Boshiwe", price:1, cat:"snacks", emoji:"🍪", img:"tuckhub/boshiwe.jpg" },
+    { id:"sneakers", name:"Sneakers", price:6, cat:"snacks", emoji:"🍫", img:"tuckhub/sneakers.jpg" },
+    { id:"snackit", name:"Snack It", price:6, cat:"snacks", emoji:"🥨", img:"tuckhub/snackit.jpg" },
+    { id:"cornchip", name:"Corn Chip", price:7, cat:"snacks", emoji:"🌽", img:"tuckhub/cornchips.jpg" },
+    { id:"niknaks", name:"Nik Naks", price:1.5, cat:"snacks", emoji:"🧀", img:"tuckhub/niknaks.jpg" },
+    { id:"boomaring", name:"Boomaring", price:1.5, cat:"snacks", emoji:"🥯", img:"tuckhub/boomaring.jpg" },
+    { id:"smallcorn", name:"Small Corn Chips", price:1.5, cat:"snacks", emoji:"🌽", img:"tuckhub/small-cornchips.jpg" },
+    { id:"pinpop", name:"Pin Pop", price:1.5, cat:"snacks", emoji:"🍭", img:"tuckhub/pinpop.jpg" },
+    { id:"brownbread", name:"Brown Bread", price:16, cat:"deli", emoji:"🍞", img:"tuckhub/brown-bread.jpg" },
+    { id:"score", name:"Score", price:15, cat:"drinks", emoji:"🥤", img:"tuckhub/score.jpg" },
+    { id:"medlemon", name:"Med Lemon", price:10, cat:"drinks", emoji:"🍋", img:"tuckhub/medlemon.jpg" },
+  ],
+  newflame: [
+    { id:"legquarter", name:"Chicken Dust — Leg Quarter", price:30, cat:"chicken", emoji:"🍗", img:"newflame/leg-quarter.jpg" },
+    { id:"wingbreast", name:"Chicken Dust — Wing + Breast", price:35, cat:"chicken", emoji:"🍗", img:"newflame/wing-breast.jpg" },
+    { id:"burgerplain", name:"Regular Burger (No Cheese)", price:15, cat:"burgers", emoji:"🍔", img:"newflame/burger-plain.jpg" },
+    { id:"burgercheese", name:"Regular Burger (with Cheese)", price:19, cat:"burgers", emoji:"🍔", img:"newflame/burger-cheese.jpg" },
+    { id:"doubleburger", name:"Double Burger (with Cheese)", price:25, cat:"burgers", emoji:"🍔", img:"newflame/double-burger.jpg" },
+  ]
+};
+
+const CATEGORIES = {
+  tuckhub: [
+    { id:"hot", label:"Hot Foods (Prep Time)", emoji:"🔥" },
+    { id:"snacks", label:"Snacks", emoji:"🍫" },
+    { id:"deli", label:"Deli & Bread", emoji:"🍞" },
+    { id:"drinks", label:"Drinks", emoji:"🥤" },
+  ],
+  newflame: [
+    { id:"chicken", label:"Chicken Dust", emoji:"🍗" },
+    { id:"burgers", label:"Burgers", emoji:"🍔" },
+  ]
+};
+
+const PROMOS = {
+  "CANTEEN26": { type:"percent", value:10, label:"10% off your order" },
+  "FIRE5": { type:"flat", value:5, label:"E5 off (New Flame)" },
+};
+
+/* =========================================================
+   3. STATE
+   ========================================================= */
+const state = {
+  vendor: null,
+  view: "vendor",
+  cart: JSON.parse(localStorage.getItem("cart") || "{}"),
+  menu: JSON.parse(localStorage.getItem("menu") || "null"),
+  orders: [],
+  promo: null,
+  orderInfo: JSON.parse(localStorage.getItem("customerInfo") || "null"),
+  activeOrder: null,
+  adminTab: "orders",
+};
+
+function saveCart(){ localStorage.setItem("cart", JSON.stringify(state.cart)); }
+function saveMenu(){ localStorage.setItem("menu", JSON.stringify(state.menu)); }
+function saveCustomerInfo(info){
+  state.orderInfo = info;
+  localStorage.setItem("customerInfo", JSON.stringify(info));
+}
+
+/* =========================================================
+   4. FIREBASE SYNC
+   ========================================================= */
+async function loadMenuFromDB(){
+  if(db){
+    try{
+      const snap = await db.ref("menu").get();
+      if(snap.exists()){
+        const remoteMenu = snap.val();
+        // Check if remote menu has old broken paths, if so, override with new seed
+        const firstItem = remoteMenu?.tuckhub?.[0];
+        if(firstItem && firstItem.img && firstItem.img.startsWith("images/tuckhub/")){
+          console.warn("⚠️ Old paths detected in Firebase — replacing with corrected seed");
+          state.menu = SEED_MENU;
+          saveMenu();
+          db.ref("menu").set(SEED_MENU).catch(()=>{});
+          return;
+        }
+        state.menu = remoteMenu;
+        saveMenu();
+        console.log("✅ Menu loaded from Firebase");
+        return;
+      }
+    }catch(e){ console.warn("Menu DB read failed:", e); }
+  }
+  if(!state.menu || (state.menu?.tuckhub?.[0]?.img || "").startsWith("images/")){
+    state.menu = SEED_MENU;
+    saveMenu();
+    if(db) db.ref("menu").set(SEED_MENU).catch(()=>{});
+    console.log("📦 Menu seeded");
+  }
+}
+
+function saveMenuToDB(){
+  saveMenu();
+  if(db) db.ref("menu").set(state.menu).catch(e => console.warn("Menu save failed:", e));
+}
+
+async function loadOrdersFromDB(){
+  if(db){
+    try{
+      const snap = await db.ref("orders").get();
+      if(snap.exists()){
+        const val = snap.val();
+        state.orders = Object.values(val).sort((a,b) => b.createdAt - a.createdAt);
+        return;
+      }
+    }catch(e){ console.warn("Orders DB read failed:", e); }
+  }
+  state.orders = JSON.parse(localStorage.getItem("orders") || "[]").sort((a,b) => b.createdAt - a.createdAt);
+}
+
+async function placeOrder(order){
+  order.createdAt = Date.now();
+  order.id = "ORD-" + Date.now().toString(36).toUpperCase();
+  state.orders.unshift(order);
+  localStorage.setItem("orders", JSON.stringify(state.orders));
+  if(db){
+    try{ await db.ref("orders/" + order.id).set(order); }
+    catch(e){ console.warn("Order upload failed:", e); }
+  }
+  return order;
+}
+
+async function updateOrder(id, patch){
+  const idx = state.orders.findIndex(o => o.id === id);
+  if(idx >= 0){
+    state.orders[idx] = { ...state.orders[idx], ...patch };
+    localStorage.setItem("orders", JSON.stringify(state.orders));
+  }
+  if(db){
+    try{ await db.ref("orders/" + id).update(patch); }
+    catch(e){ console.warn("Order update failed:", e); }
+  }
+}
+
+function subscribeToOrders(cb){
+  if(!db) return;
+  db.ref("orders").on("value", snap => {
+    if(snap.exists()){
+      const val = snap.val();
+      state.orders = Object.values(val).sort((a,b) => b.createdAt - a.createdAt);
+      cb && cb();
+    }
+  });
+}
+
+/* =========================================================
+   5. HELPERS
+   ========================================================= */
+const fmt = n => "E " + Number(n).toFixed(2);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg){
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+function getCartItems(vendor){
+  const c = state.cart[vendor] || {};
+  return Object.entries(c).map(([id, qty]) => {
+    const item = state.menu[vendor].find(m => m.id === id);
+    if(!item) return null;
+    return { ...item, qty };
+  }).filter(Boolean);
+}
+
+function cartCount(vendor){
+  const c = state.cart[vendor] || {};
+  return Object.values(c).reduce((s,n) => s+n, 0);
+}
+
+function cartTotal(vendor){
+  return getCartItems(vendor).reduce((s,i) => s + i.price * i.qty, 0);
+}
+
+function addToCart(vendor, id){
+  if(!state.cart[vendor]) state.cart[vendor] = {};
+  state.cart[vendor][id] = (state.cart[vendor][id] || 0) + 1;
+  saveCart();
+  toast("Added to cart");
+  render();
+}
+
+function setQty(vendor, id, qty){
+  if(!state.cart[vendor]) state.cart[vendor] = {};
+  if(qty <= 0){ delete state.cart[vendor][id]; }
+  else{ state.cart[vendor][id] = qty; }
+  saveCart();
+  render();
+  if(document.getElementById("modalCart").classList.contains("open")) openCart();
+}
+
+function clearCart(vendor){
+  state.cart[vendor] = {};
+  saveCart();
+  render();
+}
+
+function applyPromo(vendor){
+  const code = (document.getElementById("promoInput")?.value || "").trim().toUpperCase();
+  if(!code){ toast("Enter a promo code"); return; }
+  const promo = PROMOS[code];
+  if(!promo){ toast("Invalid promo code"); return; }
+  state.promo = { code, ...promo };
+  toast("Promo applied: " + promo.label);
+  openCart();
+}
+
+function getDiscount(vendor){
+  if(!state.promo) return 0;
+  const sub = cartTotal(vendor);
+  if(state.promo.type === "percent") return sub * state.promo.value / 100;
+  if(state.promo.type === "flat") return Math.min(sub, state.promo.value);
+  return 0;
+}
+
+/* =========================================================
+   6. RENDER ROOT
+   ========================================================= */
+function render(){
+  const app = document.getElementById("app");
+  if(state.view === "vendor") app.innerHTML = renderVendorPicker();
+  else if(state.view === "menu") app.innerHTML = renderMenuView();
+  else if(state.view === "admin") app.innerHTML = renderAdmin();
+  attachHandlers();
+  if(state.view === "menu") renderCartButton();
+}
+
+/* =========================================================
+   7. VENDOR PICKER
+   ========================================================= */
+function renderVendorPicker(){
+  return `
+  <div class="min-h-screen flex flex-col" style="background:linear-gradient(160deg,#F5F7FA 0%,#E8EEF5 100%)">
+    <div class="px-6 pt-10 pb-6 text-center">
+      <div style="font-size:3rem;line-height:1">🛒</div>
+      <h1 style="font-size:2rem;font-weight:700;color:#000080;margin-top:.5rem">Order Food Now</h1>
+      <p class="text-sm mt-2" style="color:#6B7A8F">Choose where you want to order from</p>
+    </div>
+
+    <div class="px-5 grid gap-4 max-w-lg mx-auto w-full pb-10">
+
+      <div class="vendor-card vendor-tuckhub" onclick="selectVendor('tuckhub')">
+        <div class="v-hero">
+          <img src="images/hero-tuckhub.jpg" alt="TuckHub" onerror="this.style.display='none'"/>
+          <div class="overlay"></div>
+          <div class="icon-wrap"><i class="fas fa-store"></i></div>
+        </div>
+        <div class="p-5">
+          <h3 style="font-size:1.3rem;font-weight:700;color:#000080">TuckHub Mbabane</h3>
+          <p class="text-sm mt-1" style="color:#6B7A8F">Snacks, drinks, hot foods & essentials</p>
+          <div class="flex items-center justify-between mt-4">
+            <span class="chip" style="background:#E0F2FE;color:#075985">🕐 Instant / 5–15 min</span>
+            <span class="font-bold" style="color:#000080">E0.50 — E16</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="vendor-card vendor-newflame" onclick="selectVendor('newflame')">
+        <div class="v-hero">
+          <img src="images/hero-newflame.jpg" alt="New Flame" onerror="this.style.display='none'"/>
+          <div class="overlay"></div>
+          <div class="icon-wrap"><i class="fas fa-fire"></i></div>
+        </div>
+        <div class="p-5">
+          <h3 style="font-size:1.3rem;font-weight:700;color:#C7321B">The New Flame</h3>
+          <p class="text-sm mt-1" style="color:#6B7A8F">Kitchen & Grill — Freshly cooked meals</p>
+          <div class="flex items-center justify-between mt-4">
+            <span class="chip" style="background:#FEE2E2;color:#991B1B">🍳 Cook to order / 20–30 min</span>
+            <span class="font-bold" style="color:#C7321B">E15 — E35</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-outline w-full mt-4" onclick="openAdmin()">
+        <i class="fas fa-lock"></i> Admin Panel
+      </button>
+
+      <div class="text-center text-xs mt-6" style="color:#94A3B8;line-height:1.8">
+        <div>📍 Mbabane Campus, Mangwaneni</div>
+        <div>📞 76276790 / 79899806</div>
+        <div class="mt-2">Designed & developed by
+          <a href="https://wakhilekeiren.github.io/portfolio/" target="_blank" style="color:#000080;font-weight:600;text-decoration:underline">Wakhile Keiren Mavimbela</a>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   8. MENU VIEW
+   ========================================================= */
+function renderMenuView(){
+  const v = state.vendor;
+  const items = state.menu[v] || [];
+  const cats = CATEGORIES[v];
+  const isFire = v === "newflame";
+  const accent = isFire ? "#C7321B" : "#000080";
+
+  const catSections = cats.map(cat => {
+    const catItems = items.filter(i => i.cat === cat.id && i.available !== false);
+    if(!catItems.length) return "";
+    return `
+      <div class="section-title">
+        <span>${cat.emoji}</span> ${cat.label}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        ${catItems.map(item => `
+          <div class="menu-card">
+            <img src="${esc(item.img)}" alt="${esc(item.name)}" class="item-img" loading="lazy"
+                 onerror="this.outerHTML='<div class=\\'fallback\\'>${item.emoji || '🍽️'}</div>'"/>
+            <div class="p-3 flex flex-col gap-1 flex-1">
+              <div class="text-xs font-semibold" style="color:#6B7A8F;min-height:2rem">${esc(item.name)}</div>
+              <div class="font-bold" style="color:${accent}">${fmt(item.price)}</div>
+              <button class="btn ${isFire ? 'btn-fire' : 'btn-primary'} btn-sm mt-auto" onclick="event.stopPropagation();addToCart('${v}','${item.id}')">
+                <i class="fas fa-plus"></i> Add
+              </button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }).join("");
+
+  const vendorName = isFire ? "The New Flame" : "TuckHub Mbabane";
+  const logo = isFire ? "images/logo-newflame.jpg" : "images/logo-tuckhub.jpg";
+
+  return `
+  <div style="min-height:100vh;padding-bottom:5.5rem;background:#F5F7FA">
+    <div class="header-bar">
+      <button class="btn ${isFire ? 'btn-outline-fire' : 'btn-outline'} btn-sm" onclick="state.view='vendor';state.vendor=null;render()">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <img src="${logo}" alt="" style="width:36px;height:36px;border-radius:.5rem;object-fit:contain"
+           onerror="this.style.display='none'"/>
+      <div class="flex-1">
+        <div class="font-bold" style="color:${accent};font-family:Fraunces,serif;font-size:1.1rem">${vendorName}</div>
+        <div class="text-xs" style="color:#6B7A8F">Order online · Pay on delivery</div>
+      </div>
+      <button class="btn ${isFire ? 'btn-outline-fire' : 'btn-outline'} btn-sm" onclick="openInfo()"><i class="fas fa-info-circle"></i></button>
+    </div>
+
+    <div class="px-4 pt-4">
+      ${catSections || '<p class="text-center py-10" style="color:#6B7A8F">No items available</p>'}
+    </div>
+
+    <div style="text-align:center;padding:2rem 1rem;color:#94A3B8;font-size:.75rem">
+      Designed by <a href="https://wakhilekeiren.github.io/portfolio/" target="_blank" style="color:${accent};font-weight:600">Wakhile Keiren Mavimbela</a>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="state.view='menu';render()">
+      <i class="fas fa-utensils"></i>Menu
+    </button>
+    <button class="tab-btn" onclick="openCart()">
+      <i class="fas fa-shopping-bag"></i>Cart
+      <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" onclick="openTrack()">
+      <i class="fas fa-receipt"></i>Orders
+    </button>
+  </div>`;
+}
+
+function renderCartButton(){
+  const badge = document.getElementById("cartBadge");
+  if(!badge) return;
+  const c = cartCount(state.vendor);
+  badge.textContent = c;
+  badge.style.display = c > 0 ? "flex" : "none";
+}
+
+/* =========================================================
+   9. CART MODAL
+   ========================================================= */
+function openCart(){
+  const v = state.vendor;
+  if(!v) return;
+  const items = getCartItems(v);
+  const isFire = v === "newflame";
+  const accent = isFire ? "#C7321B" : "#000080";
+  const sub = cartTotal(v);
+  const disc = getDiscount(v);
+  const total = Math.max(0, sub - disc);
+
+  const hot = items.filter(i => i.cat === "hot" || i.cat === "chicken" || i.cat === "burgers");
+  const ready = items.filter(i => !(i.cat === "hot" || i.cat === "chicken" || i.cat === "burgers"));
+
+  const renderItems = arr => arr.map(item => `
+    <div class="flex items-center gap-3 py-2">
+      <div style="font-size:1.75rem">${item.emoji || '🍽️'}</div>
+      <div class="flex-1">
+        <div class="font-semibold text-sm">${esc(item.name)}</div>
+        <div class="text-xs" style="color:#6B7A8F">${fmt(item.price)} each</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="qty-btn ghost" onclick="setQty('${v}','${item.id}', ${item.qty - 1})">−</button>
+        <span class="font-bold w-6 text-center text-sm">${item.qty}</span>
+        <button class="qty-btn" onclick="setQty('${v}','${item.id}', ${item.qty + 1})" style="background:${accent}">+</button>
+      </div>
+    </div>
+  `).join("");
+
+  const content = `
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="font-family:Fraunces,serif;font-size:1.4rem;font-weight:700;color:${accent}">Your Cart</h2>
+      <button class="btn btn-outline btn-sm" onclick="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    ${items.length === 0 ? `
+      <div class="text-center py-10">
+        <div style="font-size:3rem">🛒</div>
+        <p class="mt-3" style="color:#6B7A8F">Your cart is empty</p>
+        <button class="btn ${isFire ? 'btn-fire' : 'btn-primary'} mt-4" onclick="closeModals()">Browse Menu</button>
+      </div>
+    ` : `
+      ${hot.length ? `<div class="section-title">🔥 Hot Foods (Prep Time)</div>${renderItems(hot)}` : ""}
+      ${ready.length ? `<div class="section-title">✨ Ready Items</div>${renderItems(ready)}` : ""}
+
+      <div class="mt-4 pt-4 border-t" style="border-color:#E5EAF0">
+        <div class="flex gap-2">
+          <input id="promoInput" placeholder="Promo code" value="${state.promo?.code || ""}" style="flex:1"/>
+          <button class="btn ${isFire ? 'btn-outline-fire' : 'btn-outline'}" onclick="applyPromo('${v}')">Apply</button>
+        </div>
+        ${state.promo ? `<p class="text-xs mt-2" style="color:#059669"><i class="fas fa-check-circle"></i> ${state.promo.label}</p>` : ""}
+      </div>
+
+      <div class="mt-4 pt-4 border-t" style="border-color:#E5EAF0">
+        <div class="flex justify-between text-sm"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+        ${disc > 0 ? `<div class="flex justify-between text-sm mt-1" style="color:#059669"><span>Discount</span><span>−${fmt(disc)}</span></div>` : ""}
+        <div class="flex justify-between mt-3 pt-3 border-t font-bold text-lg" style="border-color:#E5EAF0;color:${accent}">
+          <span>Total</span><span>${fmt(total)}</span>
+        </div>
+      </div>
+
+      <button class="btn ${isFire ? 'btn-fire' : 'btn-primary'} w-full mt-4" onclick="openCheckout()">
+        Checkout <i class="fas fa-arrow-right"></i>
+      </button>
+    `}
+  `;
+  document.getElementById("modalCartContent").innerHTML = content;
+  document.getElementById("modalCart").classList.add("open");
+}
+
+/* =========================================================
+   10. CHECKOUT MODAL
+   ========================================================= */
+function openCheckout(){
+  const v = state.vendor;
+  const isFire = v === "newflame";
+  const accent = isFire ? "#C7321B" : "#000080";
+  const sub = cartTotal(v);
+  const disc = getDiscount(v);
+  const total = Math.max(0, sub - disc);
+  const info = state.orderInfo || {};
+
+  const content = `
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="font-family:Fraunces,serif;font-size:1.4rem;font-weight:700;color:${accent}">Checkout</h2>
+      <button class="btn btn-outline btn-sm" onclick="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-semibold" style="color:#6B7A8F">FULL NAME *</label>
+        <input id="coName" placeholder="e.g. Sipho Dlamini" value="${esc(info.name || '')}" required/>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold" style="color:#6B7A8F">HOSTEL / RESIDENCE *</label>
+          <input id="coHostel" placeholder="e.g. KaMkhweli" value="${esc(info.hostel || '')}" required/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6B7A8F">ROOM NUMBER *</label>
+          <input id="coRoom" placeholder="e.g. B12" value="${esc(info.room || '')}" required/>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold" style="color:#6B7A8F">PHONE NUMBER *</label>
+        <input id="coPhone" type="tel" placeholder="8 digits" maxlength="8" value="${esc(info.phone || '')}" required/>
+      </div>
+      <div>
+        <label class="text-xs font-semibold" style="color:#6B7A8F">NOTES (optional)</label>
+        <textarea id="coNotes" rows="2" placeholder="e.g. No atchar, extra sauce...">${esc(info.notes || '')}</textarea>
+      </div>
+
+      <div class="pt-3 border-t" style="border-color:#E5EAF0">
+        <div class="section-title">Payment Method</div>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <label class="p-3 rounded-xl border-2 cursor-pointer flex flex-col items-center gap-1" style="border-color:#E5EAF0" id="payCashLabel">
+            <input type="radio" name="payMethod" value="cash" checked class="hidden" onchange="togglePayMethod()"/>
+            <i class="fas fa-money-bill-wave text-lg" style="color:#059669"></i>
+            <span class="text-xs font-semibold">Cash on Delivery</span>
+          </label>
+          <label class="p-3 rounded-xl border-2 cursor-pointer flex flex-col items-center gap-1" style="border-color:#E5EAF0" id="payMoMoLabel">
+            <input type="radio" name="payMethod" value="momo" class="hidden" onchange="togglePayMethod()"/>
+            <i class="fas fa-mobile-alt text-lg" style="color:#1E40AF"></i>
+            <span class="text-xs font-semibold">Mobile Money</span>
+          </label>
+        </div>
+
+        <div id="momoPanel" style="display:none;margin-top:.75rem;background:#F0F9FF;padding:.9rem;border-radius:.75rem;border:1px solid #BAE6FD">
+          <p class="text-xs" style="color:#075985;line-height:1.6">
+            <strong>1.</strong> Send <strong>${fmt(total)}</strong> to <strong>${MOMO_NAME}</strong><br/>
+            <strong>2.</strong> MoMo number: <strong>${MOMO_NUMBER}</strong><br/>
+            <strong>3.</strong> Enter the transaction reference below<br/>
+            <strong>4.</strong> Admin confirms before marking as paid
+          </p>
+          <input id="coMomoRef" placeholder="e.g. MP240712.1234.A56789" style="margin-top:.6rem;font-size:.8rem"/>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t" style="border-color:#E5EAF0">
+        <div class="flex justify-between"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+        ${disc > 0 ? `<div class="flex justify-between" style="color:#059669"><span>Discount</span><span>−${fmt(disc)}</span></div>` : ""}
+        <div class="flex justify-between mt-2 pt-2 border-t font-bold text-lg" style="border-color:#E5EAF0;color:${accent}">
+          <span>Total</span><span>${fmt(total)}</span>
+        </div>
+      </div>
+
+      <button class="btn ${isFire ? 'btn-fire' : 'btn-primary'} w-full" style="margin-top:.5rem" onclick="submitOrder()">
+        <i class="fas fa-check"></i> Place Order
+      </button>
+      <p class="text-center text-xs mt-2" style="color:#94A3B8">You will be shown your order number and position in queue</p>
+    </div>
+  `;
+  document.getElementById("modalCart").classList.remove("open");
+  document.getElementById("modalCheckoutContent").innerHTML = content;
+  document.getElementById("modalCheckout").classList.add("open");
+}
+
+function togglePayMethod(){
+  const method = document.querySelector('input[name="payMethod"]:checked').value;
+  document.getElementById("momoPanel").style.display = method === "momo" ? "block" : "none";
+  document.getElementById("payCashLabel").style.borderColor = method === "cash" ? "#059669" : "#E5EAF0";
+  document.getElementById("payMoMoLabel").style.borderColor = method === "momo" ? "#1E40AF" : "#E5EAF0";
+}
+
+async function submitOrder(){
+  const v = state.vendor;
+  const name = document.getElementById("coName").value.trim();
+  const hostel = document.getElementById("coHostel").value.trim();
+  const room = document.getElementById("coRoom").value.trim();
+  const phone = document.getElementById("coPhone").value.trim();
+  const notes = document.getElementById("coNotes").value.trim();
+  const method = document.querySelector('input[name="payMethod"]:checked').value;
+  const momoRef = document.getElementById("coMomoRef")?.value.trim() || "";
+
+  if(!name){ toast("Enter your name"); return; }
+  if(!hostel){ toast("Enter your hostel"); return; }
+  if(!room){ toast("Enter your room number"); return; }
+  if(!/^\d{8}$/.test(phone)){ toast("Phone must be 8 digits"); return; }
+  if(method === "momo" && !momoRef){ toast("Enter the MoMo transaction reference"); return; }
+
+  saveCustomerInfo({ name, hostel, room, phone, notes });
+
+  const items = getCartItems(v).map(i => ({ id:i.id, name:i.name, price:i.price, qty:i.qty, cat:i.cat }));
+  const sub = cartTotal(v);
+  const disc = getDiscount(v);
+  const total = Math.max(0, sub - disc);
+
+  const ahead = state.orders.filter(o => o.vendor === v && o.status !== "delivered").length;
+
+  const order = {
+    vendor: v,
+    customer: { name, hostel, room, phone, notes },
+    items,
+    subtotal: sub,
+    discount: disc,
+    promo: state.promo?.code || null,
+    total,
+    payment: method,
+    momoRef: method === "momo" ? momoRef : null,
+    paid: false,
+    status: "pending",
+    positionAtOrder: ahead + 1,
+  };
+
+  const saved = await placeOrder(order);
+  state.activeOrder = saved.id;
+
+  clearCart(v);
+  state.promo = null;
+
+  document.getElementById("modalCheckout").classList.remove("open");
+  showOrderConfirmation(saved);
+}
+
+function showOrderConfirmation(order){
+  const isFire = order.vendor === "newflame";
+  const accent = isFire ? "#C7321B" : "#000080";
+  const vendorName = isFire ? "The New Flame" : "TuckHub Mbabane";
+
+  const msg = encodeURIComponent(
+    `🛒 New Order\n\nOrder #: ${order.id}\nVendor: ${vendorName}\nName: ${order.customer.name}\nHostel: ${order.customer.hostel}, Room ${order.customer.room}\nPhone: ${order.customer.phone}\n\nItems:\n${order.items.map(i => `• ${i.qty}x ${i.name} = ${fmt(i.price * i.qty)}`).join("\n")}\n\nTotal: ${fmt(order.total)}\nPayment: ${order.payment === "momo" ? "MoMo — Ref: " + order.momoRef : "Cash on delivery"}${order.customer.notes ? "\nNotes: " + order.customer.notes : ""}`
+  );
+
+  const content = `
+    <div class="text-center py-4">
+      <div style="font-size:4rem">✅</div>
+      <h2 style="font-family:Fraunces,serif;font-size:1.6rem;font-weight:700;color:${accent};margin-top:.5rem">Order Placed!</h2>
+      <p class="text-sm mt-2" style="color:#6B7A8F">Your order has been sent to the kitchen</p>
+    </div>
+
+    <div class="p-4 rounded-xl" style="background:#F5F7FA;text-align:center">
+      <div class="text-xs font-semibold" style="color:#6B7A8F;letter-spacing:.05em">ORDER NUMBER</div>
+      <div style="font-family:Fraunces,serif;font-size:1.6rem;font-weight:700;color:${accent}">#${order.id.slice(-6)}</div>
+      <div class="mt-3 text-xs font-semibold" style="color:#6B7A8F;letter-spacing:.05em">POSITION IN QUEUE</div>
+      <div style="font-size:1.6rem;font-weight:700">${order.positionAtOrder}</div>
+      <p class="text-xs mt-2" style="color:#6B7A8F">You will be notified when your order is ready</p>
+    </div>
+
+    <div class="mt-4 space-y-2">
+      <div class="flex justify-between text-sm"><span>Vendor</span><span class="font-semibold">${vendorName}</span></div>
+      <div class="flex justify-between text-sm"><span>Total</span><span class="font-semibold">${fmt(order.total)}</span></div>
+      <div class="flex justify-between text-sm"><span>Payment</span><span class="font-semibold">${order.payment === "momo" ? "Mobile Money" : "Cash on Delivery"}</span></div>
+      <div class="flex justify-between text-sm"><span>Status</span><span class="chip chip-pending">Pending</span></div>
+    </div>
+
+    <div class="mt-4 grid gap-2">
+      <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${msg}" target="_blank" class="btn ${isFire ? 'btn-fire' : 'btn-primary'} w-full" style="text-decoration:none">
+        <i class="fab fa-whatsapp"></i> Send Order on WhatsApp
+      </a>
+      <button class="btn ${isFire ? 'btn-outline-fire' : 'btn-outline'} w-full" onclick="closeModals();state.activeOrder='${order.id}';openTrack();">
+        <i class="fas fa-receipt"></i> Track This Order
+      </button>
+      <button class="btn ${isFire ? 'btn-outline-fire' : 'btn-outline'} w-full" onclick="closeModals();state.view='menu';render();">
+        <i class="fas fa-utensils"></i> Order More
+      </button>
+    </div>
+
+    <p class="text-center text-xs mt-4" style="color:#94A3B8">Save this order number. You'll need it to check status.</p>
+  `;
+  document.getElementById("modalInfoContent").innerHTML = content;
+  document.getElementById("modalInfo").classList.add("open");
+}
+
+/* =========================================================
+   11. TRACKING MODAL
+   ========================================================= */
+function openTrack(){
+  const recent = state.orders.filter(o => o.vendor === state.vendor).slice(0, 10);
+  const isFire = state.vendor === "newflame";
+  const accent = isFire ? "#C7321B" : "#000080";
+
+  const content = `
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="font-family:Fraunces,serif;font-size:1.4rem;font-weight:700;color:${accent}">Recent Orders</h2>
+      <button class="btn btn-outline btn-sm" onclick="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    ${recent.length === 0 ? `
+      <div class="text-center py-10">
+        <div style="font-size:3rem">📭</div>
+        <p class="mt-3" style="color:#6B7A8F">No orders yet</p>
+      </div>
+    ` : recent.map(o => {
+      const items = o.items.map(i => `${i.qty}x ${i.name}`).join(", ");
+      const statusChip = {
+        pending: '<span class="chip chip-pending">Pending</span>',
+        preparing: '<span class="chip chip-preparing">Preparing</span>',
+        ready: '<span class="chip chip-ready-status">Ready</span>',
+        delivered: '<span class="chip chip-delivered">Delivered</span>',
+      }[o.status] || "";
+      const payChip = o.paid ? '<span class="chip chip-paid">Paid</span>' : '<span class="chip chip-unpaid">Not Paid</span>';
+      return `
+        <div class="order-row mb-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-bold" style="color:${accent};font-family:Fraunces,serif">#${o.id.slice(-6)}</div>
+              <div class="text-xs" style="color:#6B7A8F">${new Date(o.createdAt).toLocaleString()}</div>
+            </div>
+            <div class="flex flex-col gap-1 items-end">${statusChip}${payChip}</div>
+          </div>
+          <div class="text-xs" style="color:#6B7A8F">${esc(items)}</div>
+          <div class="flex justify-between items-center mt-2 pt-2 border-t" style="border-color:#F0F3F7">
+            <span class="font-bold">${fmt(o.total)}</span>
+            <span class="text-xs" style="color:#6B7A8F">${esc(o.customer.name)} · ${esc(o.customer.hostel)} ${esc(o.customer.room)}</span>
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `;
+  document.getElementById("modalTrackContent").innerHTML = content;
+  document.getElementById("modalTrack").classList.add("open");
+}
+
+/* =========================================================
+   12. INFO MODAL
+   ========================================================= */
+function openInfo(){
+  const isFire = state.vendor === "newflame";
+  const accent = isFire ? "#C7321B" : "#000080";
+  const content = `
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="font-family:Fraunces,serif;font-size:1.4rem;font-weight:700;color:${accent}">Info & Contact</h2>
+      <button class="btn btn-outline btn-sm" onclick="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="space-y-3 text-sm">
+      <div class="p-3 rounded-xl" style="background:#F5F7FA">
+        <div class="font-semibold mb-1">📍 Location</div>
+        <p style="color:#6B7A8F">Mbabane Campus, Mangwaneni, Eswatini</p>
+      </div>
+      <div class="p-3 rounded-xl" style="background:#F5F7FA">
+        <div class="font-semibold mb-1">📞 Call to Order</div>
+        <p style="color:#6B7A8F">76276790 / 79899806</p>
+      </div>
+      <div class="p-3 rounded-xl" style="background:#F5F7FA">
+        <div class="font-semibold mb-1">💳 Payment</div>
+        <p style="color:#6B7A8F">Cash on delivery or Mobile Money (Retail ${MOMO_NUMBER})</p>
+      </div>
+      <div class="p-3 rounded-xl" style="background:#F5F7FA">
+        <div class="font-semibold mb-1">🕐 Hours</div>
+        <p style="color:#6B7A8F">Mon–Fri: 1–2pm, 6–9pm · Sat–Sun: 2–8pm</p>
+      </div>
+      <div class="text-center pt-3">
+        <p class="text-xs" style="color:#94A3B8">Designed by
+          <a href="https://wakhilekeiren.github.io/portfolio/" target="_blank" style="color:${accent};font-weight:600">Wakhile Keiren Mavimbela</a>
+        </p>
+      </div>
+    </div>
+  `;
+  document.getElementById("modalInfoContent").innerHTML = content;
+  document.getElementById("modalInfo").classList.add("open");
+}
+
+/* =========================================================
+   13. ADMIN
+   ========================================================= */
+function openAdmin(){
+  document.getElementById("modalAdminContent").innerHTML = `
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="font-family:Fraunces,serif;font-size:1.4rem;font-weight:700;color:#000080">Admin Access</h2>
+      <button class="btn btn-outline btn-sm" onclick="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    <label class="text-xs font-semibold" style="color:#6B7A8F">ENTER PIN</label>
+    <input id="adminPin" type="password" maxlength="4" style="margin-top:.4rem;text-align:center;font-size:1.4rem;letter-spacing:.5em" placeholder="••••"/>
+    <button class="btn btn-primary w-full mt-4" onclick="checkAdminPin()">Unlock</button>
+    <p class="text-center text-xs mt-3" style="color:#94A3B8">Default PIN: 2468</p>
+  `;
+  document.getElementById("modalAdmin").classList.add("open");
+  setTimeout(() => document.getElementById("adminPin")?.focus(), 100);
+}
+
+function checkAdminPin(){
+  const pin = document.getElementById("adminPin").value;
+  if(pin !== ADMIN_PIN){ toast("Wrong PIN"); return; }
+  state.view = "admin";
+  closeModals();
+  render();
+}
+
+function renderAdmin(){
+  const tabs = [
+    { id:"orders", label:"Orders", icon:"fa-list" },
+    { id:"menu", label:"Menu", icon:"fa-book" },
+    { id:"analytics", label:"Sales", icon:"fa-chart-line" },
+  ];
+
+  let body = "";
+  if(state.adminTab === "orders") body = renderAdminOrders();
+  else if(state.adminTab === "menu") body = renderAdminMenu();
+  else body = renderAdminAnalytics();
+
+  return `
+  <div style="min-height:100vh;background:#F5F7FA">
+    <div class="header-bar">
+      <button class="btn btn-outline btn-sm" onclick="state.view='vendor';state.vendor=null;render()">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <div class="flex-1">
+        <div class="font-bold" style="color:#000080;font-family:Fraunces,serif;font-size:1.1rem">Admin Panel</div>
+        <div class="text-xs" style="color:#6B7A8F">Manage orders & menu</div>
+      </div>
+    </div>
+
+    <div class="flex gap-1 px-3 py-2 bg-white border-b" style="border-color:#E5EAF0">
+      ${tabs.map(t => `
+        <button class="tab-btn ${state.adminTab === t.id ? 'active' : ''}" style="color:${state.adminTab === t.id ? '#000080' : '#6B7A8F'};font-weight:${state.adminTab === t.id ? '700' : '500'}" onclick="state.adminTab='${t.id}';render()">
+          <i class="fas ${t.icon}"></i>${t.label}
+        </button>
+      `).join("")}
+    </div>
+
+    <div class="p-3 pb-10">${body}</div>
+  </div>`;
+}
+
+function renderAdminOrders(){
+  if(state.orders.length === 0){
+    return `<div class="text-center py-10"><div style="font-size:3rem">📭</div><p class="mt-3" style="color:#6B7A8F">No orders yet</p></div>`;
+  }
+
+  const tuckOrders = state.orders.filter(o => o.vendor === "tuckhub");
+  const fireOrders = state.orders.filter(o => o.vendor === "newflame");
+
+  return `
+    <div class="mb-4">
+      <div class="section-title"><span>🛒</span> TuckHub (${tuckOrders.length})</div>
+      ${tuckOrders.map(o => renderAdminOrderCard(o)).join("") || '<p class="text-xs" style="color:#94A3B8">No TuckHub orders</p>'}
+    </div>
+    <div class="mb-4">
+      <div class="section-title"><span>🔥</span> New Flame (${fireOrders.length})</div>
+      ${fireOrders.map(o => renderAdminOrderCard(o)).join("") || '<p class="text-xs" style="color:#94A3B8">No New Flame orders</p>'}
+    </div>
+  `;
+}
+
+function renderAdminOrderCard(o){
+  const isHot = o.items.some(i => i.cat === "hot" || i.cat === "chicken" || i.cat === "burgers");
+  const statusOpts = ["pending", "preparing", "ready", "delivered"];
+  const items = o.items.map(i => `${i.qty}x ${i.name}`).join(", ");
+  const accent = o.vendor === "newflame" ? "#C7321B" : "#000080";
+
+  return `
+    <div class="order-row ${isHot ? 'hot' : 'ready'} mb-3">
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="font-bold" style="color:${accent};font-family:Fraunces,serif">#${o.id.slice(-6)}</div>
+          <div class="text-xs" style="color:#6B7A8F">${new Date(o.createdAt).toLocaleString()}</div>
+        </div>
+        <div class="flex flex-col gap-1 items-end">
+          ${isHot ? '<span class="chip chip-hot">🔥 Hot</span>' : '<span class="chip chip-ready">✨ Ready</span>'}
+          ${o.paid ? '<span class="chip chip-paid">Paid</span>' : '<span class="chip chip-unpaid">Unpaid</span>'}
+        </div>
+      </div>
+      <div class="text-xs" style="color:#6B7A8F">${esc(items)}</div>
+      <div class="text-xs"><strong>${esc(o.customer.name)}</strong> · ${esc(o.customer.hostel)} ${esc(o.customer.room)} · ${esc(o.customer.phone)}</div>
+      ${o.customer.notes ? `<div class="text-xs italic" style="color:#92400E">📝 ${esc(o.customer.notes)}</div>` : ""}
+      ${o.momoRef ? `<div class="text-xs" style="color:#075985">MoMo Ref: ${esc(o.momoRef)}</div>` : ""}
+      <div class="flex justify-between items-center pt-2 border-t" style="border-color:#F0F3F7">
+        <span class="font-bold">${fmt(o.total)}</span>
+        <span class="text-xs" style="color:#6B7A8F">${o.payment.toUpperCase()}</span>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <select onchange="updateOrder('${o.id}',{status:this.value})" style="flex:1;padding:.4rem;font-size:.8rem">
+          ${statusOpts.map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join("")}
+        </select>
+        <button class="btn btn-sm ${o.paid ? 'btn-outline' : 'btn-primary'}" onclick="updateOrder('${o.id}',{paid:${!o.paid}}).then(()=>render())">
+          ${o.paid ? 'Mark Unpaid' : 'Mark Paid'}
+        </button>
+        <a href="https://wa.me/${o.customer.phone.replace(/^0/, '268')}" target="_blank" class="btn btn-outline btn-sm" style="text-decoration:none"><i class="fab fa-whatsapp"></i></a>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminMenu(){
+  const v = state.vendor || "tuckhub";
+  const items = state.menu[v] || [];
+  return `
+    <div class="flex gap-2 mb-3">
+      <button class="btn btn-sm ${state.vendor === 'tuckhub' ? 'btn-primary' : 'btn-outline'}" style="flex:1" onclick="state.vendor='tuckhub';render()">TuckHub</button>
+      <button class="btn btn-sm ${state.vendor === 'newflame' ? 'btn-fire' : 'btn-outline-fire'}" style="flex:1" onclick="state.vendor='newflame';render()">New Flame</button>
+    </div>
+
+    <button class="btn btn-primary w-full mb-3" onclick="addNewItem()"><i class="fas fa-plus"></i> Add New Item</button>
+
+    ${items.map(item => `
+      <div class="admin-item mb-2">
+        <div class="flex-1">
+          <div class="font-semibold text-sm">${esc(item.name)}</div>
+          <div class="text-xs" style="color:#6B7A8F">${fmt(item.price)} · ${item.cat} ${item.available === false ? '· <span style="color:#DC2626">Out of Stock</span>' : ''}</div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="toggleStock('${item.id}')">
+          ${item.available === false ? '<i class="fas fa-check"></i>' : '<i class="fas fa-ban"></i>'}
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="editItem('${item.id}')"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-sm btn-outline" style="color:#DC2626;border-color:#DC2626" onclick="deleteItem('${item.id}')"><i class="fas fa-trash"></i></button>
+      </div>
+    `).join("") || '<p class="text-center py-6" style="color:#94A3B8">No items</p>'}
+  `;
+}
+
+function renderAdminAnalytics(){
+  const now = Date.now();
+  const day = 24*60*60*1000;
+  const today = state.orders.filter(o => o.createdAt > now - day);
+  const week = state.orders.filter(o => o.createdAt > now - 7*day);
+  const month = state.orders.filter(o => o.createdAt > now - 30*day);
+
+  const sum = arr => arr.reduce((s,o) => s + (o.paid ? o.total : 0), 0);
+  const count = arr => arr.length;
+
+  const itemCounts = {};
+  state.orders.forEach(o => o.items.forEach(i => {
+    itemCounts[i.name] = (itemCounts[i.name] || 0) + i.qty;
+  }));
+  const topItems = Object.entries(itemCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+
+  return `
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="stat-card"><div class="stat-label">Today</div><div class="stat-num">${fmt(sum(today))}</div><div class="text-xs" style="color:#6B7A8F">${count(today)} orders</div></div>
+      <div class="stat-card"><div class="stat-label">This Week</div><div class="stat-num">${fmt(sum(week))}</div><div class="text-xs" style="color:#6B7A8F">${count(week)} orders</div></div>
+      <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-num">${fmt(sum(month))}</div><div class="text-xs" style="color:#6B7A8F">${count(month)} orders</div></div>
+      <div class="stat-card"><div class="stat-label">Unpaid</div><div class="stat-num">${state.orders.filter(o => !o.paid).length}</div><div class="text-xs" style="color:#6B7A8F">need confirmation</div></div>
+    </div>
+
+    <div class="section-title">Top Items</div>
+    <div class="stat-card">
+      ${topItems.map(([name, qty]) => `
+        <div class="flex justify-between py-1 text-sm">
+          <span>${esc(name)}</span>
+          <span class="font-bold">${qty} sold</span>
+        </div>
+      `).join("") || '<p class="text-xs" style="color:#94A3B8">No data yet</p>'}
+    </div>
+
+    <div class="section-title">Revenue by Vendor</div>
+    <div class="stat-card">
+      <div class="flex justify-between py-1 text-sm"><span>🛒 TuckHub</span><span class="font-bold">${fmt(sum(state.orders.filter(o => o.vendor === 'tuckhub')))}</span></div>
+      <div class="flex justify-between py-1 text-sm"><span>🔥 New Flame</span><span class="font-bold">${fmt(sum(state.orders.filter(o => o.vendor === 'newflame')))}</span></div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   14. ADMIN ACTIONS
+   ========================================================= */
+function toggleStock(id){
+  const v = state.vendor;
+  const item = state.menu[v].find(i => i.id === id);
+  if(!item) return;
+  item.available = item.available === false ? true : false;
+  saveMenuToDB();
+  toast(item.available === false ? "Marked out of stock" : "Back in stock");
+  render();
+}
+
+function editItem(id){
+  const v = state.vendor;
+  const item = state.menu[v].find(i => i.id === id);
+  if(!item) return;
+  const name = prompt("Item name:", item.name);
+  if(name === null) return;
+  const price = prompt("Price (E):", item.price);
+  if(price === null) return;
+  const cat = prompt("Category (" + CATEGORIES[v].map(c => c.id).join("/") + "):", item.cat);
+  if(cat === null) return;
+  item.name = name.trim() || item.name;
+  item.price = parseFloat(price) || item.price;
+  item.cat = cat.trim() || item.cat;
+  saveMenuToDB();
+  toast("Item updated");
+  render();
+}
+
+function addNewItem(){
+  const v = state.vendor;
+  const name = prompt("New item name:");
+  if(!name) return;
+  const price = prompt("Price (E):");
+  if(!price) return;
+  const cat = prompt("Category (" + CATEGORIES[v].map(c => c.id).join("/") + "):", CATEGORIES[v][0].id);
+  if(!cat) return;
+  const emoji = prompt("Emoji (optional):", "🍽️") || "🍽️";
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now().toString(36).slice(-4);
+  state.menu[v].push({ id, name: name.trim(), price: parseFloat(price), cat: cat.trim(), emoji, available: true });
+  saveMenuToDB();
+  toast("Item added");
+  render();
+}
+
+function deleteItem(id){
+  if(!confirm("Delete this item?")) return;
+  const v = state.vendor;
+  state.menu[v] = state.menu[v].filter(i => i.id !== id);
+  saveMenuToDB();
+  toast("Item deleted");
+  render();
+}
+
+/* =========================================================
+   15. UTILITIES
+   ========================================================= */
+function selectVendor(v){
+  state.vendor = v;
+  state.view = "menu";
+  render();
+}
+
+function closeModals(){
+  document.querySelectorAll(".modal-overlay").forEach(m => m.classList.remove("open"));
+}
+
+function attachHandlers(){
+  document.querySelectorAll(".modal-overlay").forEach(m => {
+    m.addEventListener("click", (e) => { if(e.target === m) closeModals(); });
+  });
+}
+
+/* =========================================================
+   16. PWA MANIFEST
+   ========================================================= */
+(function setupPWA(){
+  const manifest = {
+    name: "TuckHub & New Flame",
+    short_name: "TuckHub",
+    start_url: ".",
+    display: "standalone",
+    background_color: "#F5F7FA",
+    theme_color: "#000080",
+    icons: [
+      { src: "images/logo-tuckhub.jpg", sizes: "192x192", type: "image/jpeg" },
+      { src: "images/logo-tuckhub.jpg", sizes: "512x512", type: "image/jpeg" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+  const link = document.createElement("link");
+  link.rel = "manifest";
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+})();
+
+/* =========================================================
+   17. BOOT
+   ========================================================= */
+async function boot(){
+  render();
+  await loadMenuFromDB();
+  await loadOrdersFromDB();
+  subscribeToOrders(() => { if(state.view === "admin") render(); });
+  render();
+  console.log("🚀 TuckHub ready");
+}
+
+boot();
+
+const mo = new MutationObserver(() => {
+  const anyOpen = document.querySelector(".modal-overlay.open");
+  document.body.style.overflow = anyOpen ? "hidden" : "";
+});
+document.querySelectorAll(".modal-overlay").forEach(m => mo.observe(m, { attributes: true, attributeFilter: ["class"] }));
+</script>
+</body>
+</html>
